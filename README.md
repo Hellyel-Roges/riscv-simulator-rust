@@ -1,48 +1,42 @@
-# Simulador RISC-V (RV32I) em Rust 🦀
+# Simulador RISC-V (RV32I) em Rust
 
-Este repositório contém o código-fonte de um Simulador de Computador baseado na arquitetura RISC-V (ISA RV32I). Este é o projeto final da disciplina de Organização de Computadores da UniSantos.
+Este repositório contém o código-fonte de um Simulador de Computador baseado na arquitetura RISC-V (ISA RV32I). Este é o projeto final da disciplina de Organização de Computadores da Universidade Católica de Santos (UniSantos).
 
-## 🎯 Objetivo do Projeto
-Desenvolver um simulador funcional capaz de carregar e executar instruções de máquina do RISC-V. O simulador não é apenas um emulador de CPU, mas a representação de um sistema completo, englobando processador, memória e barramento de dados.
+## Objetivo do Projeto
+Desenvolver um simulador funcional capaz de carregar e executar instruções de máquina do RISC-V. O simulador não é apenas um emulador de CPU, mas a representação de um sistema computacional completo, englobando processador, memória e barramento de dados.
 
-## 🏗️ Estrutura e Componentes
-O simulador é dividido nos seguintes módulos principais:
+## Estrutura e Componentes
+O simulador adota uma arquitetura modular, dividida nos seguintes componentes principais:
 
-* **CPU:** Implementação do ciclo de busca, decodificação e execução. Suporte para registradores de 32 bits e instruções lógicas, aritméticas, de desvio e de acesso à memória.
-* **Memória RAM:** Mapeamento de faixas de endereços para a RAM principal (0x00000 - 0x7FFFF), VRAM (0x80000 - 0x8FFFF) e periféricos.
-* **Barramento:** Lógica de interligação de 32 bits (dados, endereços e controle) entre a CPU e a memória.
-* **Entrada/Saída (E/S):** Controle de E/S programada para renderizar os dados da VRAM no terminal.
+* **CPU:** Implementação cycle-accurate do fluxo de busca, decodificação e execução. Possui suporte para os 32 registradores base e para o conjunto de instruções RV32I (lógicas, aritméticas, desvios e acesso à memória).
+* **Memória RAM:** Mapeamento de memória estruturado em faixas de endereços, incluindo RAM principal (0x00000 - 0x7FFFF), VRAM (0x80000 - 0x8FFFF) e periféricos mapeados em memória (0x9FC00 - 0x9FFFF).
+* **Barramento:** Interface de interligação de 32 bits responsável por rotear dados, endereços e sinais de controle entre a CPU e o subsistema de memória, garantindo o isolamento arquitetural.
+* **Entrada/Saída (E/S):** Módulo de E/S programada projetado para processar e renderizar os dados da VRAM diretamente no terminal.
 
-## 🚀 Instrução Customizada (A Definir)
-**Grupo:**
-* GRAZIELA CRISTINA SOARES ANTIORIO
-* GUSTAVO FREITAS SAMPAIO
-* HELLYEL ROGES DOS PASSOS AMBROZIO PEREIRA 
+## Equipe e Instrução Customizada
+**Grupo 5:**
+* Graziela Cristina Soares Antiorio
+* Gustavo Freitas Sampaio
+* Hellyel Roges dos Passos Ambrozio Pereira
 
-**Instrução Especial:** 
-* [AINDA SERÁ DECIDIDA]
+**Instrução Especial Exclusiva:**
+* **LDINC (Load and Increment):** Instrução customizada que realiza a leitura da memória e a atualização do ponteiro no mesmo ciclo de instrução (`rd = MEM[rs1]` seguido de `rs1 = rs1 + 4`).
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 * **Linguagem:** [Rust](https://www.rust-lang.org/)
-* **Gerenciador de pacotes:** Cargo
+* **Interface (TUI):** `ratatui` e `crossterm` (para renderização visual interativa no terminal com alta performance)
+* **Build System & Package Manager:** Cargo
 
-## 🏃 Como rodar o projeto
-Certifique-se de ter o Rust e o Cargo instalados na sua máquina.
+## Como Executar o Projeto
+Para rodar este simulador, certifique-se de ter o ambiente Rust instalado na sua máquina (via `rustup`).
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
+git clone [https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git](https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git)
 ```
-
-2. Entre no diretório do projeto:
 ```bash
-cd NOME_DO_REPOSITORIO
+cargo run --release
 ```
-
-3. Compile e execute o simulador:
 ```bash
-cargo run
+cargo run --release
 ```
-
----
-*Projeto desenvolvido para a disciplina de Organização de Computadores - Universidade Católica de Santos (UniSantos).*
