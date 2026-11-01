@@ -7,33 +7,30 @@ use memoria::Memory;
 use barramento::Barramento;
 
 fn main() {
-    // 1MB de memória instanciado
-    let mut memoria = Memory::new(1024 * 1024);
+ let mut memoria = Memory::new(1024 * 1024);
     
-    // Inserimos valores fake no endereço 0x100 (256 em decimal) para o teste
-    memoria.ram[256] = 0xAA;
-    memoria.ram[257] = 0xBB;
-    memoria.ram[258] = 0xCC;
-    memoria.ram[259] = 0xDD;
+    // Instrução real em linguagem de máquina para "SW x6, 4(x5)"
+    // O opcode dela é 0x23 (cai no match do Hellyel)
+    let instrucao_sw: u32 = 0x0062A223; 
+    let bytes = instrucao_sw.to_le_bytes(); 
+    
+    memoria.ram[0] = bytes[0];
+    memoria.ram[1] = bytes[1];
+    memoria.ram[2] = bytes[2];
+    memoria.ram[3] = bytes[3];
 
-    // barramento entregando a memória para ele gerenciar
     let barramento = Barramento::new(memoria);
-    
-    // CPU criada
     let mut cpu = CPU::new();
 
-    // Configurando a instrução
-    cpu.registradores[10] = 256; // Registrador rs1 aponta para o endereço 256
+    // Injetando valores fakes para a sua função testar a matemática de ponteiros
+    cpu.registradores[5] = 100; // rs1 (endereço base)
+    cpu.registradores[6] = 999; // rs2 (valor a ser salvo na memória)
+
+    println!("--- Simulador RISC-V: Teste de Ciclo ---");
+    println!("PC atual: {}", cpu.pc);
     
-    println!("--- Simulador RISC-V Iniciado ---");
-    println!("Estado antes do LDINC:");
-    println!("rs1 (Reg 10): {}", cpu.registradores[10]);
-    println!("rd  (Reg 11): {:#X}\n", cpu.registradores[11]);
+    // Roda a CPU
+    cpu.executar_ciclo(&barramento); 
 
-    // A CPU pede para executar o LDINC (rd = 11, rs1 = 10) usando o barramento
-    cpu.executar_ldinc(11, 10, &barramento);
-
-    println!("Estado depois do LDINC:");
-    println!("rd  (Reg 11): {:#X} (Valor lido do Barramento)", cpu.registradores[11]);
-    println!("rs1 (Reg 10): {} (Incrementado em +4)", cpu.registradores[10]);
+    println!("PC após o ciclo: {}", cpu.pc);
 }
