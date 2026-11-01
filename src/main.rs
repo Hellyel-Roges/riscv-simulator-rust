@@ -19,7 +19,7 @@ fn main() {
     memoria.ram[2] = bytes[2];
     memoria.ram[3] = bytes[3];
 
-    let barramento = Barramento::new(memoria);
+    let mut barramento = Barramento::new(memoria);
     let mut cpu = CPU::new();
 
     // Injetando valores fakes para a sua função testar a matemática de ponteiros
@@ -30,7 +30,7 @@ fn main() {
     println!("PC atual: {}", cpu.pc);
     
     // Roda a CPU
-    cpu.executar_ciclo(&barramento); 
+    cpu.executar_ciclo(&mut barramento); 
 
     println!("PC após o ciclo: {}", cpu.pc);
 }

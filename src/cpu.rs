@@ -13,7 +13,7 @@ impl CPU {
         }
     }
 
-    pub fn executar_ciclo(&mut self, barramento: &Barramento) {
+    pub fn executar_ciclo(&mut self, barramento: &mut Barramento) {
         // Busca a instrução usando o PC atual
         let instrucao = barramento.ler_u32(self.pc as usize);
         
@@ -56,7 +56,7 @@ impl CPU {
     
     // Parte do Hellyel, Implementação das instruções de load e store, incluindo a customizada LDINC.
 
-    pub fn executar_load(&mut self, instrucao: u32, barramento: &Barramento) {
+    pub fn executar_load(&mut self, instrucao: u32, barramento: &mut Barramento) {
         // Extração dos campos do Tipo-I (LW)
         let rd = ((instrucao >> 7) & 0x1F) as usize;
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
@@ -73,7 +73,7 @@ impl CPU {
         }
     }
 
-    pub fn executar_store(&mut self, instrucao: u32, _barramento: &Barramento) {
+pub fn executar_store(&mut self, instrucao: u32, barramento: &mut Barramento) {
         // Extração dos campos do Tipo-S (SW)
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
         let rs2 = ((instrucao >> 20) & 0x1F) as usize;
@@ -91,13 +91,13 @@ impl CPU {
         let endereco = self.registradores[rs1].wrapping_add(imm) as usize;
         let valor_para_salvar = self.registradores[rs2];
         
-        // Como o barramento ainda não tem a função de escrever, deixamos engatilhado!
-        // TODO na Semana 4/5: barramento.escrever_u32(endereco, valor_para_salvar);
-        println!("Pronto para gravar {} no endereço {}", valor_para_salvar, endereco);
+        // Grava o valor na memória através do barramento
+        barramento.escrever_u32(endereco, valor_para_salvar);
+        println!("Gravado {} no endereço {}", valor_para_salvar, endereco);
     }
 
-    pub fn executar_ldinc(&mut self, instrucao: u32, barramento: &Barramento) {
-        // A LDINC agora lê seus próprios parâmetros de dentro dos 32 bits!
+    pub fn executar_ldinc(&mut self, instrucao: u32, barramento: &mut Barramento) {
+        // A LDINC agora lê seus próprios parâmetros de dentro dos 32 bits
         let rd = ((instrucao >> 7) & 0x1F) as usize;
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
         

@@ -16,4 +16,8 @@ impl Barramento {
         
         self.memoria.ler_u32(endereco)
     }
+    pub fn escrever_u32(&mut self, endereco: usize, valor: u32) {
+        // Aqui, no futuro, você também vai poder rotear para a VRAM (0x80000)
+        self.memoria.escrever_u32(endereco, valor);
+    }
 }
