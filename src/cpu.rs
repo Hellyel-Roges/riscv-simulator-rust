@@ -35,16 +35,123 @@ impl CPU {
         }
     }
 
-    pub fn executar_tipo_r(&mut self, _instrucao: u32) {
-        // Grazi, aqui você extrai o rs1, rs2, rd, funct3 e funct7.
-        // Dica de extração de bits. let funct3 = (_instrucao >> 12) & 0x7;
-        // Lembra que o registrador zero (x0) sempre vale 0 e não pode ser alterado.
-    }
+    
+pub fn executar_tipo_r(&mut self, instrucao: u32) {
+    // Extrai os campos da instrução Tipo-R
+    let rd = ((instrucao >> 7) & 0x1F) as usize;
+    let funct3 = (instrucao >> 12) & 0x7;
+    let rs1 = ((instrucao >> 15) & 0x1F) as usize;
+    let rs2 = ((instrucao >> 20) & 0x1F) as usize;
+    let funct7 = (instrucao >> 25) & 0x7F;
 
-    pub fn executar_tipo_i_aritmetico(&mut self, _instrucao: u32) {
-        // Grazi, aqui é a lógica do ADDI, SLLI, etc.
-        // O imediato tem 12 bits, você vai precisar fazer extensão de sinal nele.
+    // Busca os valores dos registradores
+    let a = self.registradores[rs1];
+    let b = self.registradores[rs2];
+
+    // Deslocamento limitado aos 5 bits inferiores
+    let deslocamento = b & 0x1F;
+
+    // Identifica a operação usando funct3 e funct7
+    let resultado = match (funct3, funct7) {
+        // Soma
+        (0b000, 0b0000000) => Some(a.wrapping_add(b)), // ADD
+        // Subtração
+        (0b000, 0b0100000) => Some(a.wrapping_sub(b)), // SUB
+        // Deslocamento lógico para esquerda
+        (0b001, 0b0000000) => Some(a << deslocamento), // SLL
+        // Comparação com sinal
+        (0b010, 0b0000000) => Some(((a as i32) < (b as i32)) as u32), // SLT
+        // Comparação sem sinal
+        (0b011, 0b0000000) => Some((a < b) as u32), // SLTU
+        // XOR bit a bit
+        (0b100, 0b0000000) => Some(a ^ b), // XOR
+        // Deslocamento lógico para direita
+        (0b101, 0b0000000) => Some(a >> deslocamento), // SRL
+        // Deslocamento aritmético para direita
+        (0b101, 0b0100000) => Some(((a as i32) >> deslocamento) as u32), // SRA
+        // OR bit a bit
+        (0b110, 0b0000000) => Some(a | b), // OR
+        // AND bit a bit
+        (0b111, 0b0000000) => Some(a & b), // AND
+        // Instrução não reconhecida
+        _ => None,
+    };
+
+    // Salva o resultado no registrador de destino
+    // O registrador x0 não pode ser alterado
+    match resultado {
+        Some(valor) if rd != 0 => {
+            self.registradores[rd] = valor;
+        }
+        Some(_) => {}
+        None => {
+            eprintln!("Instrucao Tipo-R invalida");
+        }
     }
+}
+
+
+    
+pub fn executar_tipo_i_aritmetico(&mut self, instrucao: u32) {
+    // Extrai os campos da instrução Tipo-I
+    let rd = ((instrucao >> 7) & 0x1F) as usize;
+    let funct3 = (instrucao >> 12) & 0x7;
+    let rs1 = ((instrucao >> 15) & 0x1F) as usize;
+
+    // Extrai imediato de 12 bits com extensão de sinal
+    let imediato = (instrucao as i32) >> 20;
+    // Extrai campos usados nos deslocamentos
+    let funct7 = (instrucao >> 25) & 0x7F;
+    let shamt = (instrucao >> 20) & 0x1F;
+    
+    // Busca o valor do registrador de origem
+    let a = self.registradores[rs1];
+
+    // Identifica e executa a operação
+    let resultado = match funct3 {
+        // Soma com imediato
+        0b000 => Some(a.wrapping_add(imediato as u32)), // ADDI
+        // Comparação com sinal
+        0b010 => Some(((a as i32) < imediato) as u32), // SLTI
+        // Comparação sem sinal
+        0b011 => Some((a < imediato as u32) as u32), // SLTIU
+        // XOR com imediato
+        0b100 => Some(a ^ (imediato as u32)), // XORI
+        // OR com imediato
+        0b110 => Some(a | (imediato as u32)), // ORI
+        // AND com imediato
+        0b111 => Some(a & (imediato as u32)), // ANDI
+        // Deslocamento lógico para esquerda
+        0b001 if funct7 == 0b0000000 => {
+            Some(a << shamt) // SLLI
+        }
+
+        // Deslocamento lógico para direita
+        0b101 if funct7 == 0b0000000 => {
+            Some(a >> shamt) // SRLI
+        }
+
+        // Deslocamento aritmético para direita
+        0b101 if funct7 == 0b0100000 => {
+            Some(((a as i32) >> shamt) as u32) // SRAI
+        }
+
+        // Instrução não reconhecida
+        _ => None,
+    };
+
+    // Salva o resultado no registrador de destino
+    // O registrador x0 permanece sempre zero
+    match resultado {
+        Some(valor) if rd != 0 => {
+            self.registradores[rd] = valor;
+        }
+        Some(_) => {}
+        None => {
+            eprintln!("Instrucao Tipo-I invalida");
+        }
+    }
+}
 
     pub fn executar_branch(&mut self, _instrucao: u32) {
         // Gustavo, aqui você extrai os imediatos fracionados, rs1, rs2 e funct3.
