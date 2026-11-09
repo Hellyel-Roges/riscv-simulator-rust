@@ -28,14 +28,14 @@ impl Barramento {
         // Aplica a mascara de 32 bits
         let dado_formatado = dado & 0xFFFF_FFFF;
 
-        // Registra o dado trafegando pelo barramento
+        // Log da transferencia de dados
         println!(
             "Barramento de Dados [CPU -> RAM]: Trafegando valor {} ({:#010X})",
             dado_formatado,
             dado_formatado
         );
 
-        // Retorna o dado para ser gravado na memoria
+        // Retorna o valor tratado
         dado_formatado
     }
 
@@ -46,14 +46,14 @@ impl Barramento {
         // Aplica a mascara de 32 bits
         let dado_formatado = dado & 0xFFFF_FFFF;
 
-        // Registra o dado trafegando pelo barramento
+        // Log da transferencia de dados
         println!(
             "Barramento de Dados [RAM -> CPU]: Trafegando valor {} ({:#010X})",
             dado_formatado,
             dado_formatado
         );
 
-        // Retorna o dado para a CPU
+        // Retorna o valor tratado
         dado_formatado
     }
 
