@@ -8,15 +8,13 @@ impl Barramento {
     pub fn new(memoria: Memory) -> Self {
         Barramento { memoria }
     }
-
-    // PARTE DO GUSTAVO: BARRAMENTO DE ENDEREÇOS
-    // "ajusta as posições de memória para leitura/escrita"
+    
     fn validar_endereco(&self, endereco: usize) -> usize {
-        // Gustavo, aqui você deve verificar o alinhamento de memória.
-        // O RV32I lê instruções e palavras de 4 em 4 bytes (32 bits).
-        // Se o endereço não for múltiplo de 4 (ex: addr % 4 != 0),
-        // lance um panic! avisando do erro de alinhamento.
-        endereco
+        if endereco % 4 == 0 {
+            endereco
+        } else {
+            panic!("ERRO DE ALINHAMENTO DE ENDERECO!!!");
+        }
     }
 
     // PARTE DA GRAZIELA: BARRAMENTO DE DADOS
