@@ -1,3 +1,4 @@
+
 use crate::memoria::Memory;
 
 pub struct Barramento {
@@ -20,15 +21,38 @@ impl Barramento {
     // PARTE DA GRAZIELA: BARRAMENTO DE DADOS
     // "permitir o fluxo de entrada/saída dos dados"
     fn formatar_dado_in(&self, dado: u32) -> u32 {
-        // Grazi, aqui é o fluxo de dados entrando na memória (CPU -> RAM).
-        // Você pode garantir a máscara de 32 bits exata (dado & 0xFFFFFFFF)
-        // ou criar algum log de barramento rastreando o que está trafegando.
-        dado
+        // Fluxo de dados da CPU para a RAM
+
+        // Aplica a mascara de 32 bits
+        let dado_formatado = dado & 0xFFFF_FFFF;
+
+        // Log da transferencia de dados
+        println!(
+            "Barramento de Dados [CPU -> RAM]: Trafegando valor {} ({:#010X})",
+            dado_formatado,
+            dado_formatado
+        );
+
+        // Retorna o valor tratado
+        dado_formatado
     }
+
     // PARTE DA GRAZIELA: BARRAMENTO DE DADOS
     fn formatar_dado_out(&self, dado: u32) -> u32 {
-        // Fluxo de dados saindo da memória (RAM -> CPU).
-        dado
+        // Fluxo de dados da RAM para a CPU
+
+        // Aplica a mascara de 32 bits
+        let dado_formatado = dado & 0xFFFF_FFFF;
+
+        // Log da transferencia de dados
+        println!(
+            "Barramento de Dados [RAM -> CPU]: Trafegando valor {} ({:#010X})",
+            dado_formatado,
+            dado_formatado
+        );
+
+        // Retorna o valor tratado
+        dado_formatado
     }
 
     // PARTE DO HELLYEL: BARRAMENTO DE CONTROLE
