@@ -10,15 +10,20 @@ impl Barramento {
         Barramento { memoria }
     }
     
+    // "ajusta as posições de memória para leitura/escrita"
     fn validar_endereco(&self, endereco: usize) -> usize {
-        if endereco % 4 == 0 {
+        // Usa operação bit-a-bit (Bitwise) para checar o alinhamento.
+        // Se os 2 últimos bits do endereço forem 0 (addr & 0x3 == 0), ele é múltiplo de 4.
+        if endereco & 0x3 == 0 {
             endereco
         } else {
-            panic!("ERRO DE ALINHAMENTO DE ENDERECO!!!");
+            panic!(
+                "ERRO DE ALINHAMENTO NO BARRAMENTO: O endereço solicitado ({:#010X}) não é múltiplo de 4 (Word Boundary).",
+                endereco
+            );
         }
     }
 
-    // PARTE DA GRAZIELA: BARRAMENTO DE DADOS
     // "permitir o fluxo de entrada/saída dos dados"
     fn formatar_dado_in(&self, dado: u32) -> u32 {
         // Fluxo de dados da CPU para a RAM
@@ -37,7 +42,6 @@ impl Barramento {
         dado_formatado
     }
 
-    // PARTE DA GRAZIELA: BARRAMENTO DE DADOS
     fn formatar_dado_out(&self, dado: u32) -> u32 {
         // Fluxo de dados da RAM para a CPU
 
@@ -55,7 +59,6 @@ impl Barramento {
         dado_formatado
     }
 
-    // PARTE DO HELLYEL: BARRAMENTO DE CONTROLE
     // "ajusta a permissão de leitura/escrita dos blocos"
     fn verificar_controle(&self, endereco: usize, is_write: bool) {
         // Mapeamento oficial de memória do simulador:
@@ -160,5 +163,14 @@ mod testes {
         
         // Tenta acessar o endereço 2000 num pente de RAM que só tem 1024 bytes
         barramento.ler_u32(2000);
+    }
+    #[test]
+    #[should_panic(expected = "ALINHAMENTO")]
+    fn testar_erro_de_alinhamento() {
+        let memoria = Memory::new(1024); 
+        let barramento = Barramento::new(memoria);
+        
+        // Tenta ler em um endereço quebrado (não múltiplo de 4)
+        barramento.ler_u32(0x103); 
     }
 }
