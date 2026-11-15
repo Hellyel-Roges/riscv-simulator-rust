@@ -44,9 +44,9 @@ impl CPU {
             0x63 => self.executar_branch(instrucao),
             0x03 => self.executar_load(instrucao, barramento),
             0x23 => self.executar_store(instrucao, barramento),
-            0x0B => self.executar_ldinc(instrucao, barramento), // Opcode customizado para o Grupo 5
-            0x00 => println!("Fim da execucao (memoria zerada)."),
-            _ => println!("Opcode desconhecido: {:#X}", opcode),
+            0x0B => self.executar_ldinc(instrucao, barramento), // Opcode customizado para o LDINC
+            0x00 => { /* println!("Fim da execucao (memoria zerada).") */ },
+            _ => { /* println!("Opcode desconhecido: {:#X}", opcode) */ },
         }
     }
 
@@ -104,7 +104,7 @@ impl CPU {
                 self.registradores[rd] = resultado;
             }
         } else {
-            eprintln!("Instrucao Tipo-R invalida: {:#010X}", instrucao);
+            // eprintln!("Instrucao Tipo-R invalida: {:#010X}", instrucao);
         }
     }
 
@@ -151,7 +151,7 @@ impl CPU {
                 self.registradores[rd] = resultado;
             }
         } else {
-            eprintln!("Instrucao Tipo-I aritmetica invalida: {:#010X}", instrucao);
+            // eprintln!("Instrucao Tipo-I aritmetica invalida: {:#010X}", instrucao);
         }
     }
 
@@ -188,7 +188,7 @@ impl CPU {
             0b110 => val1 < val2,                    // BLTU (Menor sem sinal)
             0b111 => val1 >= val2,                   // BGEU (Maior ou igual sem sinal)
             _ => {
-                eprintln!("Instrucao de branch invalida: {:#010X}", instrucao);
+                // eprintln!("Instrucao de branch invalida: {:#010X}", instrucao);
                 false
             }
         };
@@ -239,7 +239,7 @@ impl CPU {
 
         // Grava o valor na memória através do barramento
         barramento.escrever_u32(endereco, valor_para_salvar);
-        println!("Gravado {} no endereço {}", valor_para_salvar, endereco);
+        // println!("Gravado {} no endereço {}", valor_para_salvar, endereco);
     }
 
     pub fn executar_ldinc(&mut self, instrucao: u32, barramento: &mut Barramento) {
@@ -494,7 +494,7 @@ mod testes {
 
     #[test]
     fn testar_store_e_load_com_offset_negativo() {
-        let memoria = Memory::new(1024);
+        let memoria = Memory::new();
         let mut barramento = Barramento::new(memoria);
         let mut cpu = CPU::new();
 
@@ -514,7 +514,7 @@ mod testes {
 
     #[test]
     fn testar_instrucao_customizada_ldinc() {
-        let memoria = Memory::new(1024);
+        let memoria = Memory::new();
         let mut barramento = Barramento::new(memoria);
         let mut cpu = CPU::new();
 
@@ -530,7 +530,7 @@ mod testes {
 
     #[test]
     fn testar_ciclo_completo_cpu() {
-        let memoria = Memory::new(1024);
+        let memoria = Memory::new();
         let mut barramento = Barramento::new(memoria);
         let mut cpu = CPU::new();
 

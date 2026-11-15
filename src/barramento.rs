@@ -1,4 +1,3 @@
-
 use crate::memoria::Memory;
 
 pub struct Barramento {
@@ -32,11 +31,11 @@ impl Barramento {
         let dado_formatado = dado & 0xFFFF_FFFF;
 
         // Log da transferencia de dados
-        println!(
-            "Barramento de Dados [CPU -> RAM]: Trafegando valor {} ({:#010X})",
-            dado_formatado,
-            dado_formatado
-        );
+        // println!(
+        //     "Barramento de Dados [CPU -> RAM]: Trafegando valor {} ({:#010X})",
+        //     dado_formatado,
+        //     dado_formatado
+        // );
 
         // Retorna o valor tratado
         dado_formatado
@@ -49,11 +48,11 @@ impl Barramento {
         let dado_formatado = dado & 0xFFFF_FFFF;
 
         // Log da transferencia de dados
-        println!(
-            "Barramento de Dados [RAM -> CPU]: Trafegando valor {} ({:#010X})",
-            dado_formatado,
-            dado_formatado
-        );
+        // println!(
+        //     "Barramento de Dados [RAM -> CPU]: Trafegando valor {} ({:#010X})",
+        //     dado_formatado,
+        //     dado_formatado
+        // );
 
         // Retorna o valor tratado
         dado_formatado
@@ -136,7 +135,7 @@ mod testes {
 
     #[test]
     fn testar_acesso_permitido_ram_principal() {
-        let memoria = Memory::new(1024 * 1024); // 1 MB
+        let memoria = Memory::new();
         let mut barramento = Barramento::new(memoria);
         
         // Acesso normal, não deve dar erro
@@ -147,7 +146,7 @@ mod testes {
     #[test]
     #[should_panic(expected = "Violação de permissão")]
     fn testar_bloqueio_area_reservada() {
-        let memoria = Memory::new(1024 * 1024); // 1 MB
+        let memoria = Memory::new();
         let barramento = Barramento::new(memoria);
         
         // Tenta ler do endereço 0x90000 (Início da Área Reservada)
@@ -158,16 +157,17 @@ mod testes {
     #[test]
     #[should_panic(expected = "Hardware fault")]
     fn testar_bloqueio_fora_da_ram_fisica() {
-        let memoria = Memory::new(1024); // RAM de apenas 1 KB
+        let memoria = Memory::new();
         let barramento = Barramento::new(memoria);
         
-        // Tenta acessar o endereço 2000 num pente de RAM que só tem 1024 bytes
-        barramento.ler_u32(2000);
+        //// Tenta acessar 0xA0000 (Endereço 655.360), que é exatamente 1 byte fora do limite máximo de 0x9FFFF
+        barramento.ler_u32(0xA0000);
     }
+    
     #[test]
     #[should_panic(expected = "ALINHAMENTO")]
     fn testar_erro_de_alinhamento() {
-        let memoria = Memory::new(1024); 
+        let memoria = Memory::new(); 
         let barramento = Barramento::new(memoria);
         
         // Tenta ler em um endereço quebrado (não múltiplo de 4)
