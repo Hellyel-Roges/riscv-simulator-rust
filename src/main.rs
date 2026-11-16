@@ -38,7 +38,9 @@ struct MetadadosArte {
 
 // INICIALIZAÇÃO DA RAM COM O ARQUIVO SELECIONADO
 fn carregar_memoria(barramento: &mut Barramento, arquivo_txt: &str) -> MetadadosArte {
-    let arte_bruta = fs::read_to_string(arquivo_txt)
+    let caminho = format!("assets/{}", arquivo_txt);
+    
+    let arte_bruta = fs::read_to_string(&caminho)
         .unwrap_or_else(|_| String::from("ERRO: Arquivo nao encontrado!\n"));
 
     // Remove '\r' (CRLF -> LF) para evitar corrupção visual de cursor no terminal
@@ -176,7 +178,7 @@ fn main() -> Result<()> {
         hook_original(panic_info);
     }));
 
-    let mut arquivos_txt: Vec<String> = fs::read_dir(".")
+    let mut arquivos_txt: Vec<String> = fs::read_dir("assets")
         .unwrap()
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().map_or(false, |ext| ext == "txt"))
