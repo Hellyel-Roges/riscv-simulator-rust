@@ -8,7 +8,7 @@ impl Barramento {
     pub fn new(memoria: Memory) -> Self {
         Barramento { memoria }
     }
-    
+
     // "ajusta as posições de memória para leitura/escrita"
     fn validar_endereco(&self, endereco: usize) -> usize {
         // Usa operação bit-a-bit (Bitwise) para checar o alinhamento.
@@ -27,8 +27,8 @@ impl Barramento {
     fn formatar_dado_in(&self, dado: u32) -> u32 {
         // Fluxo de dados da CPU para a RAM
 
-        // Aplica a mascara de 32 bits
-        let dado_formatado = dado & 0xFFFF_FFFF;
+        // Garante o dado em 32 bits (o tipo u32 nativo já aplica a máscara 0xFFFF_FFFF)
+        let dado_formatado = dado;
 
         // Log da transferencia de dados
         // println!(
@@ -44,8 +44,8 @@ impl Barramento {
     fn formatar_dado_out(&self, dado: u32) -> u32 {
         // Fluxo de dados da RAM para a CPU
 
-        // Aplica a mascara de 32 bits
-        let dado_formatado = dado & 0xFFFF_FFFF;
+        // Garante o dado em 32 bits (o tipo u32 nativo já aplica a máscara 0xFFFF_FFFF)
+        let dado_formatado = dado;
 
         // Log da transferencia de dados
         // println!(
@@ -84,7 +84,7 @@ impl Barramento {
 
         // Bloqueio da Área Reservada (SegFault)
         // O barramento intercepta e não permite leitura nem escrita no espaço de expansão futura.
-        if endereco >= 0x90000 && endereco <= 0x9FBFF {
+        if (0x90000..=0x9FBFF).contains(&endereco) {
             let operacao = if is_write { "escrita" } else { "leitura" };
             panic!(
                 "ERRO DE CONTROLE: Violação de permissão. Tentativa de {} na Área Reservada (0x90000 a 0x9FBFF). Endereço bloqueado: {:#07X}",
@@ -96,9 +96,9 @@ impl Barramento {
     // FLUXO PRINCIPAL DE LEITURA E ESCRITA
 
     pub fn ler_u32(&self, endereco: usize) -> u32 {
-        // sa pelo pedágio de Endereço (Gustavo)
+        // Passa pelo pedágio de Endereço (Gustavo)
         let end_valido = self.validar_endereco(endereco);
-        
+
         // Passa pelo pedágio de Controle (Hellyel) - is_write = false
         self.verificar_controle(end_valido, false);
 
@@ -112,7 +112,7 @@ impl Barramento {
     pub fn escrever_u32(&mut self, endereco: usize, valor: u32) {
         // Passa pelo pedágio de Endereço (Gustavo)
         let end_valido = self.validar_endereco(endereco);
-        
+
         // Passa pelo pedágio de Controle (Hellyel) - is_write = true
         self.verificar_controle(end_valido, true);
 
@@ -137,7 +137,7 @@ mod testes {
     fn testar_acesso_permitido_ram_principal() {
         let memoria = Memory::new();
         let mut barramento = Barramento::new(memoria);
-        
+
         // Acesso normal, não deve dar erro
         barramento.escrever_u32(0x100, 42);
         assert_eq!(barramento.ler_u32(0x100), 42);
@@ -148,7 +148,7 @@ mod testes {
     fn testar_bloqueio_area_reservada() {
         let memoria = Memory::new();
         let barramento = Barramento::new(memoria);
-        
+
         // Tenta ler do endereço 0x90000 (Início da Área Reservada)
         // O teste vai passar justamente porque o barramento DEVE dar panic!
         barramento.ler_u32(0x90000);
@@ -159,18 +159,18 @@ mod testes {
     fn testar_bloqueio_fora_da_ram_fisica() {
         let memoria = Memory::new();
         let barramento = Barramento::new(memoria);
-        
-        //// Tenta acessar 0xA0000 (Endereço 655.360), que é exatamente 1 byte fora do limite máximo de 0x9FFFF
+
+        // Tenta acessar 0xA0000 (Endereço 655.360), que é exatamente 1 byte fora do limite máximo de 0x9FFFF
         barramento.ler_u32(0xA0000);
     }
-    
+
     #[test]
     #[should_panic(expected = "ALINHAMENTO")]
     fn testar_erro_de_alinhamento() {
-        let memoria = Memory::new(); 
+        let memoria = Memory::new();
         let barramento = Barramento::new(memoria);
-        
+
         // Tenta ler em um endereço quebrado (não múltiplo de 4)
-        barramento.ler_u32(0x103); 
+        barramento.ler_u32(0x103);
     }
 }

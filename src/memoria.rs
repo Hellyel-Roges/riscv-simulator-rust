@@ -6,10 +6,10 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Self {
         // Aloca exatamente o limite especificado no mapeamento de memória.
-        let tamanho_total = 0xA0000; 
-        
+        let tamanho_total = 0xA0000;
+
         Memory {
-            ram: vec![0; tamanho_total], 
+            ram: vec![0; tamanho_total],
         }
     }
 

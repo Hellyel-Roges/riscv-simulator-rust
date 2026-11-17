@@ -15,9 +15,14 @@ enum OperacaoUla {
     And,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 pub struct CPU {
     pub registradores: [u32; 32],
     pub pc: u32,
+    pub interrupcao_pendente: bool,
+    pub em_interrupcao: bool,
+    pub epc: u32,
+    pub parado: bool,
 }
 
 impl CPU {
@@ -25,12 +30,36 @@ impl CPU {
         CPU {
             registradores: [0; 32],
             pc: 0,
+            interrupcao_pendente: false,
+            em_interrupcao: false,
+            epc: 0,
+            parado: false,
         }
     }
 
     pub fn executar_ciclo(&mut self, barramento: &mut Barramento) {
+        // Se a CPU encontrou HALT anteriormente, permanece em repouso
+        if self.parado {
+            return;
+        }
+
+        // Tratamento de interrupção simplificada (salva PC em EPC e desvia para vetor seguro)
+        if self.interrupcao_pendente && !self.em_interrupcao {
+            self.epc = self.pc;
+            self.pc = 0x0007_F000;
+            self.interrupcao_pendente = false;
+            self.em_interrupcao = true;
+            return;
+        }
+
         // Busca a instrução usando o PC atual
         let instrucao = barramento.ler_u32(self.pc as usize);
+
+        // Convenção de HALT (0x00000000): paralisa a CPU sem avançar o PC
+        if instrucao == 0x0000_0000 {
+            self.parado = true;
+            return;
+        }
 
         // Incrementa para a próxima instrução
         self.pc += 4;
@@ -45,8 +74,12 @@ impl CPU {
             0x03 => self.executar_load(instrucao, barramento),
             0x23 => self.executar_store(instrucao, barramento),
             0x0B => self.executar_ldinc(instrucao, barramento), // Opcode customizado para o LDINC
-            0x00 => { /* println!("Fim da execucao (memoria zerada).") */ },
-            _ => { /* println!("Opcode desconhecido: {:#X}", opcode) */ },
+            // Pseudo-MRET simplificado: restaura PC e libera interrupções
+            0x73 if instrucao == 0x3020_0073 => {
+                self.pc = self.epc;
+                self.em_interrupcao = false;
+            }
+            _ => { /* println!("Opcode desconhecido: {:#X}", opcode) */ }
         }
     }
 
@@ -81,16 +114,16 @@ impl CPU {
 
         // Define a operação da ULA combinando funct3 e funct7
         let operacao = match (funct3, funct7) {
-            (0b000, 0b0000000) => Some(OperacaoUla::Soma),                          // ADD
-            (0b000, 0b0100000) => Some(OperacaoUla::Subtracao),                     // SUB
-            (0b001, 0b0000000) => Some(OperacaoUla::DeslocamentoEsquerda),          // SLL
-            (0b010, 0b0000000) => Some(OperacaoUla::MenorComSinal),                 // SLT
-            (0b011, 0b0000000) => Some(OperacaoUla::MenorSemSinal),                // SLTU
-            (0b100, 0b0000000) => Some(OperacaoUla::Xor),                           // XOR
-            (0b101, 0b0000000) => Some(OperacaoUla::DeslocamentoDireitaLogico),     // SRL
+            (0b000, 0b0000000) => Some(OperacaoUla::Soma), // ADD
+            (0b000, 0b0100000) => Some(OperacaoUla::Subtracao), // SUB
+            (0b001, 0b0000000) => Some(OperacaoUla::DeslocamentoEsquerda), // SLL
+            (0b010, 0b0000000) => Some(OperacaoUla::MenorComSinal), // SLT
+            (0b011, 0b0000000) => Some(OperacaoUla::MenorSemSinal), // SLTU
+            (0b100, 0b0000000) => Some(OperacaoUla::Xor),  // XOR
+            (0b101, 0b0000000) => Some(OperacaoUla::DeslocamentoDireitaLogico), // SRL
             (0b101, 0b0100000) => Some(OperacaoUla::DeslocamentoDireitaAritmetico), // SRA
-            (0b110, 0b0000000) => Some(OperacaoUla::Or),                            // OR
-            (0b111, 0b0000000) => Some(OperacaoUla::And),                           // AND
+            (0b110, 0b0000000) => Some(OperacaoUla::Or),   // OR
+            (0b111, 0b0000000) => Some(OperacaoUla::And),  // AND
             _ => None,
         };
 
@@ -128,8 +161,8 @@ impl CPU {
             0b100 => Some(OperacaoUla::Xor),           // XORI
             0b110 => Some(OperacaoUla::Or),            // ORI
             0b111 => Some(OperacaoUla::And),           // ANDI
-            0b001 if funct7 == 0b0000000 => Some(OperacaoUla::DeslocamentoEsquerda),          // SLLI
-            0b101 if funct7 == 0b0000000 => Some(OperacaoUla::DeslocamentoDireitaLogico),     // SRLI
+            0b001 if funct7 == 0b0000000 => Some(OperacaoUla::DeslocamentoEsquerda), // SLLI
+            0b101 if funct7 == 0b0000000 => Some(OperacaoUla::DeslocamentoDireitaLogico), // SRLI
             0b101 if funct7 == 0b0100000 => Some(OperacaoUla::DeslocamentoDireitaAritmetico), // SRAI
             _ => None,
         };
@@ -203,6 +236,14 @@ impl CPU {
     // Instruções de acesso à memória Load, Store e customizada LDINC
 
     pub fn executar_load(&mut self, instrucao: u32, barramento: &mut Barramento) {
+        // Valida se a instrução é estritamente LW (funct3 == 010)
+        let funct3 = (instrucao >> 12) & 0x7;
+        assert_eq!(
+            funct3, 0b010,
+            "ERRO: Apenas Load Word (LW - 010) é suportado. Recebido funct3: {:03b}",
+            funct3
+        );
+
         // Extração dos campos do Tipo-I (LW)
         let rd = ((instrucao >> 7) & 0x1F) as usize;
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
@@ -220,6 +261,14 @@ impl CPU {
     }
 
     pub fn executar_store(&mut self, instrucao: u32, barramento: &mut Barramento) {
+        // Valida se a instrução é estritamente SW (funct3 == 010)
+        let funct3 = (instrucao >> 12) & 0x7;
+        assert_eq!(
+            funct3, 0b010,
+            "ERRO: Apenas Store Word (SW - 010) é suportado. Recebido funct3: {:03b}",
+            funct3
+        );
+
         // Extração dos campos do Tipo-S (SW)
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
         let rs2 = ((instrucao >> 20) & 0x1F) as usize;
@@ -247,20 +296,27 @@ impl CPU {
         let rd = ((instrucao >> 7) & 0x1F) as usize;
         let rs1 = ((instrucao >> 15) & 0x1F) as usize;
 
-        let endereco = self.registradores[rs1] as usize;
+        // Impede conflito arquitetural de escrita dupla no mesmo registrador
+        assert_ne!(
+            rd, rs1,
+            "ERRO [LDINC]: rd (x{}) e rs1 (x{}) devem ser diferentes para evitar conflito de escrita.",
+            rd, rs1
+        );
 
-        // Carrega o dado da memória no registrador de destino (rd = MEM[rs1])
-        if rd != 0 {
-            self.registradores[rd] = barramento.ler_u32(endereco);
-        }
+        let endereco = self.registradores[rs1] as usize;
+        let dado_lido = barramento.ler_u32(endereco);
 
         // Atualiza o ponteiro base somando 4 bytes (rs1 = rs1 + 4)
         if rs1 != 0 {
             self.registradores[rs1] = self.registradores[rs1].wrapping_add(4);
         }
+
+        // Carrega o dado da memória no registrador de destino (rd = MEM[rs1])
+        if rd != 0 {
+            self.registradores[rd] = dado_lido;
+        }
     }
 }
-
 
 // ==========================================
 // TESTES UNITÁRIOS DO CPU
@@ -307,12 +363,7 @@ mod testes {
         let imm_11_5 = (imm_u32 >> 5) & 0x7F;
         let imm_4_0 = imm_u32 & 0x1F;
 
-        (imm_11_5 << 25)
-            | (rs2 << 20)
-            | (rs1 << 15)
-            | (0b010 << 12)
-            | (imm_4_0 << 7)
-            | 0x23
+        (imm_11_5 << 25) | (rs2 << 20) | (rs1 << 15) | (0b010 << 12) | (imm_4_0 << 7) | 0x23
     }
 
     fn codificar_ldinc(rs1: u32, rd: u32) -> u32 {
@@ -490,7 +541,7 @@ mod testes {
         assert_eq!(cpu.pc, 208); // 200 + 8 = 208
     }
 
-    // Testes unitários de memória, LDINC e ciclo de busca
+    // Testes unitários de memória, LDINC, interrupção e ciclo de busca
 
     #[test]
     fn testar_store_e_load_com_offset_negativo() {
@@ -553,5 +604,48 @@ mod testes {
         assert_eq!(cpu.registradores[1], 100);
         assert_eq!(cpu.registradores[2], 55);
         assert_eq!(cpu.registradores[3], 55);
+    }
+
+    #[test]
+    #[should_panic(expected = "devem ser diferentes")]
+    fn testar_ldinc_registradores_iguais() {
+        let memoria = Memory::new();
+        let mut barramento = Barramento::new(memoria);
+        let mut cpu = CPU::new();
+        cpu.registradores[10] = 300;
+        cpu.executar_ldinc(codificar_ldinc(10, 10), &mut barramento);
+    }
+
+    #[test]
+    fn testar_interrupcao_preserva_estado_e_retorna() {
+        let memoria = Memory::new();
+        let mut barramento = Barramento::new(memoria);
+        let mut cpu = CPU::new();
+
+        // Programa principal em 0x00: ADDI x1, x0, 100 ; ADDI x2, x0, 200
+        barramento.escrever_u32(0x00, codificar_tipo_i(100, 0b000, 0, 1));
+        barramento.escrever_u32(0x04, codificar_tipo_i(200, 0b000, 0, 2));
+
+        // Tratador de interrupção em 0x0007_F000: ADDI x31, x31, 1 ; MRET
+        barramento.escrever_u32(0x0007_F000, codificar_tipo_i(1, 0b000, 31, 31));
+        barramento.escrever_u32(0x0007_F004, 0x3020_0073);
+
+        cpu.executar_ciclo(&mut barramento); // Executa 0x00 (x1 = 100, pc = 4)
+        cpu.interrupcao_pendente = true;
+
+        cpu.executar_ciclo(&mut barramento); // Desvia para 0x0007_F000 (epc = 4)
+        assert_eq!(cpu.pc, 0x0007_F000);
+        assert!(cpu.em_interrupcao);
+
+        cpu.executar_ciclo(&mut barramento); // Executa ADDI x31, x31, 1
+        cpu.executar_ciclo(&mut barramento); // Executa MRET (restaura pc = 4)
+
+        assert_eq!(cpu.pc, 4);
+        assert!(!cpu.em_interrupcao);
+        assert_eq!(cpu.registradores[31], 1);
+
+        cpu.executar_ciclo(&mut barramento); // Retoma 0x04 (x2 = 200)
+        assert_eq!(cpu.registradores[1], 100);
+        assert_eq!(cpu.registradores[2], 200);
     }
 }
